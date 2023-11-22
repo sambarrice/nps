@@ -1,0 +1,58 @@
+//mcclient
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+
+#define PORT 8080
+#define MAX_BUFFER_SIZE 1024
+
+int main() {
+    int client_socket;
+    struct sockaddr_in server_addr;
+    
+    // Create socket
+    client_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (client_socket == -1) {
+        perror("Socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+    
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(PORT);
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // Server IP address
+    
+    // Connect to the server
+    if (connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
+        perror("Connection failed");
+        exit(EXIT_FAILURE);
+    }
+    
+    char message[MAX_BUFFER_SIZE];
+    
+    while (1) {
+        printf("Enter a message (or 'exit' to quit): ");
+        fgets(message, sizeof(message), stdin);
+        
+        if (strcmp(message, "exit\n") == 0) {
+            close(client_socket);
+            break;
+        }
+        
+        send(client_socket, message, strlen(message), 0);
+        
+        char buffer[MAX_BUFFER_SIZE];
+        int n = recv(client_socket, buffer, sizeof(buffer), 0);
+        if (n <= 0) {
+            perror("Receive failed");
+            break;
+        }
+        
+        buffer[n] = '\0';
+        printf("Server response: %s", buffer);
+    }
+    
+    return 0;
+}
